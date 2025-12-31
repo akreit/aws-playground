@@ -1,0 +1,70 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.5.0
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    
+    - name: Terraform Init
+      working-directory: terraform
+      run: terraform init
+    
+    - name: Terraform Format Check
+      working-directory: terraform
+      run: terraform fmt -check
+      continue-on-error: true
+    
+    - name: Terraform Validate
+      working-directory: terraform
+      run: terraform validate
+    
+    - name: Terraform Plan
+      working-directory: terraform
+      run: |
+        terraform plan \
+          -var="environment=${{ github.event.inputs.environment || 'dev' }}" \
+          -var="aws_region=${{ env.AWS_REGION }}" \
+          -out=tfplan
+    
+    - name: Terraform Apply
+      working-directory: terraform
+      run: terraform apply -auto-approve tfplan
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    - name: Output API Gateway URL
+      working-directory: terraform
+      run: terraform output api_gateway_url
