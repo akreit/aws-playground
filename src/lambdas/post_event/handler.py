@@ -1,7 +1,7 @@
 """Lambda handler for receiving clickstream events via POST."""
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -49,7 +49,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "event_id": body.get("event_id", str(uuid4())),
             "user_id": body["user_id"],
             "event_type": body["event_type"],
-            "timestamp": body.get("timestamp", datetime.utcnow().isoformat()),
+            "timestamp": datetime.now(UTC).isoformat(),  # Use server timestamp
             "page_url": body.get("page_url"),
             "metadata": body.get("metadata", {}),
         }

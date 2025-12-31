@@ -1,12 +1,13 @@
 """DynamoDB utilities for storing and retrieving clickstream events."""
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import boto3
 from boto3.dynamodb.conditions import Key
 
-# Table name from environment variable
+# Table name and TTL from environment variables
 TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "clickstream-events")
+TTL_DAYS = int(os.environ.get("EVENT_TTL_DAYS", "30"))
 
 # Initialize DynamoDB resource lazily
 _dynamodb = None
@@ -31,8 +32,8 @@ def store_event(event_data: dict) -> None:
     """
     table = _get_table()
 
-    # Add TTL (30 days from now)
-    ttl = int((datetime.utcnow() + timedelta(days=30)).timestamp())
+    # Add TTL (configurable via EVENT_TTL_DAYS environment variable, default: 30 days)
+    ttl = int((datetime.now(UTC) + timedelta(days=TTL_DAYS)).timestamp())
 
     item = {
         "pk": f"EVENT#{event_data['event_id']}",
@@ -66,7 +67,7 @@ def get_events_by_period(period: str, date: str | None = None) -> list[dict]:
     table = _get_table()
 
     if date is None:
-        date = datetime.utcnow().strftime("%Y-%m-%d")
+        date = datetime.now(UTC).strftime("%Y-%m-%d")
 
     # Query using GSI
     response = table.query(

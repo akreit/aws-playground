@@ -5,6 +5,8 @@ resource "aws_apigatewayv2_api" "main" {
   description   = "Clickstream events API"
 
   cors_configuration {
+    # TODO: In production, replace "*" with specific allowed origins
+    # Example: allow_origins = ["https://yourdomain.com", "https://app.yourdomain.com"]
     allow_origins = ["*"]
     allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["content-type", "x-api-key"]

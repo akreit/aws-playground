@@ -1,5 +1,5 @@
 """Data models for clickstream events."""
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +10,9 @@ class ClickstreamEvent(BaseModel):
     event_id: str = Field(..., description="Unique identifier for the event")
     user_id: str = Field(..., description="User identifier")
     event_type: str = Field(..., description="Type of event (e.g., click, view, purchase)")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Event timestamp")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), description="Event timestamp"
+    )
     page_url: str | None = Field(None, description="Page URL where event occurred")
     metadata: dict | None = Field(default_factory=dict, description="Additional event metadata")
 
